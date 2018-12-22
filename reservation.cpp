@@ -32,7 +32,8 @@ typedef struct {
     int seatNumber;
 } Request;
 
-// Define array for seat mutexes and seat availability
+// Server threads
+pthread_t* servers;
 
 int main(int argc, char* argv[]) 
 {
@@ -46,6 +47,8 @@ int main(int argc, char* argv[])
 	
     // Create threads for each available seat
    	pthread_t clients[NUMBER_OF_SEATS];
+	// Create server threads for each client
+	servers = new pthread_t[NUMBER_OF_SEATS];
     // For randomness
     srand(time(NULL));
 	// Client IDs
@@ -97,16 +100,14 @@ void *handleRequest(void* _id)
 		int seatNumber = rand() % NUMBER_OF_SEATS + 1;
 		// Take the lock of the chosen seat
 		pthread_mutex_lock(&seat_locks[seatNumber]);
-		// Create server thread
-		pthread_t server;
 		// Check whether it is reserved or not
 		if(!isReserved[seatNumber]) {
 			// Set seat number of the request
 			request.seatNumber = seatNumber;
 			// Make a reservation request
-			pthread_create(&server, NULL, reserveSeat, &request);
+			pthread_create(&servers[request.clientID - 1], NULL, reserveSeat, &request);
 			// Wait until reservation is done
-			pthread_join(server, NULL);  
+			pthread_join(servers[request.clientID - 1], NULL);  
 			// Release the lock
 			pthread_mutex_unlock(&seat_locks[seatNumber]);
 			break;
